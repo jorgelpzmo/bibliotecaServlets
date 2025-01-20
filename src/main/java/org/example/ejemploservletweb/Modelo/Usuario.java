@@ -40,13 +40,16 @@ public class Usuario {
     @JsonManagedReference
     private List<Prestamo> prestamos;
 
-    public Usuario(){}
+    public Usuario(){
+        this.prestamos = new ArrayList<>();
+    }
 
     public Usuario(String dni, String nombre, String password, String tipo){
         this.dni=dni;
         this.nombre=nombre;
         this.password=password;
         this.tipo=tipo;
+        this.prestamos = new ArrayList<>();
     }
 
     public Usuario(String dni, String nombre, String password, String tipo, LocalDate penalizacionHasta){

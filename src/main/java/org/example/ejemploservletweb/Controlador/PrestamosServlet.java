@@ -7,11 +7,13 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import org.example.ejemploservletweb.Modelo.*;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.time.LocalDate;
+import java.util.List;
 
 @WebServlet(name = "prestamosServlet", value="/prestamos-servlet")
 public class PrestamosServlet extends HttpServlet {
@@ -28,13 +30,27 @@ public class PrestamosServlet extends HttpServlet {
     }
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         response.setContentType("application/json");
+        HttpSession session = request.getSession(false);
+        PrintWriter impresora = response.getWriter();
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
         String opcion = request.getParameter("opcion");
+
+        if (session == null || session.getAttribute("usuario") == null) {
+            System.out.println("Usuario no autenticado");
+            impresora.println(mapper.writeValueAsString("No autenticado"));
+            return;
+        }
+
+        Usuario usuario1 = (Usuario) session.getAttribute("usuario");
+        if (!usuario1.getTipo().equals("admin")) {
+            System.out.println("Acceso denegado. No eres admin.");
+            impresora.println(mapper.writeValueAsString("Acceso denegado"));
+            return;
+        }
 
         if(opcion.equals("get")){
             String id = request.getParameter("id");
-            PrintWriter impresora = response.getWriter();
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.registerModule(new JavaTimeModule());
             Prestamo prestamo = daoprestamo.getById(id);
             if(prestamo == null){
                 System.out.println("Prestamo no encontrado");
@@ -47,8 +63,6 @@ public class PrestamosServlet extends HttpServlet {
         else if(opcion.equals("add")){
             String usuario_id = request.getParameter("usuario_id");
             String ejemplar_id = request.getParameter("ejemplar_id");
-            PrintWriter impresora = response.getWriter();
-            ObjectMapper mapper = new ObjectMapper();
             mapper.registerModule(new JavaTimeModule());
             Prestamo prestamo = new Prestamo();
             Usuario usuario = daousuario.getById(usuario_id);
@@ -76,8 +90,6 @@ public class PrestamosServlet extends HttpServlet {
             String id = request.getParameter("id");
             String ejemplar_id = request.getParameter("ejemplar_id");
             String usuario_id = request.getParameter("usuario_id");
-            PrintWriter impresora = response.getWriter();
-            ObjectMapper mapper = new ObjectMapper();
             mapper.registerModule(new JavaTimeModule());
             Usuario usuario = daousuario.getById(usuario_id);
             Ejemplar ejemplar = daoejemplar.getById(ejemplar_id);
@@ -97,8 +109,6 @@ public class PrestamosServlet extends HttpServlet {
 
         }else if(opcion.equals("delete")){
             String id = request.getParameter("id");
-            PrintWriter impresora = response.getWriter();
-            ObjectMapper mapper = new ObjectMapper();
             mapper.registerModule(new JavaTimeModule());
             Prestamo prestamo = daoprestamo.getById(id);
             Ejemplar ejemplar = daoejemplar.getById(prestamo.getEjemplar().getId().toString());
@@ -112,6 +122,20 @@ public class PrestamosServlet extends HttpServlet {
                 daoejemplar.update(ejemplar);
                 daoprestamo.deleteUsuario(prestamo);
             }
+        }
+    }
+    public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        response.setContentType("application/json");
+        PrintWriter impresora = response.getWriter();
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        List<Prestamo> prestamos = daoprestamo.getAll();
+        if(prestamos.isEmpty()){
+            impresora.println(mapper.writeValueAsString(prestamos));
+            System.out.println("No hay prestamos");
+        }else{
+            impresora.println(mapper.writeValueAsString(prestamos));
+            System.out.println(prestamos);
         }
     }
 }
